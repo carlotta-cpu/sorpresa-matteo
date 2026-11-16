@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Una sorpresa per Matte</title>
 
 <style>
@@ -14,43 +14,24 @@ html, body {
     height: 100%;
     overflow: hidden;
     background: black;
-    color: white;
-    font-family: Arial, sans-serif;
 }
 
-#scene {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#canvas {
-    position: relative;
-    width: min(100vw, 126.67vh);
-    height: min(100vh, 78.95vw);
-    aspect-ratio: 950 / 750;
-}
-
-.layer {
+#stage {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 950px;
+    height: 750px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%) scale(var(--scale,1));
+    transform-origin: center;
 }
 
 svg {
-    overflow: visible;
-}
-
-#ui, #heart, #decorazioni, #firma {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 950px;
+    height: 750px;
+    overflow: visible;
 }
 
 #ui { z-index: 5; }
@@ -60,33 +41,22 @@ svg {
 
 text {
     text-anchor: middle;
-    dominant-baseline: auto;
+    font-family: Arial, sans-serif;
 }
 
-.click-area {
+.click {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
 }
-
-button {
-    border: none;
-    background: transparent;
-    padding: 0;
-}
-
 </style>
 </head>
 
 <body>
-<div id="scene">
-<div id="canvas">
-
+<div id="stage">
 <svg id="heart" viewBox="0 0 950 750"></svg>
 <svg id="decorazioni" viewBox="0 0 950 750"></svg>
 <svg id="ui" viewBox="0 0 950 750"></svg>
 <svg id="firma" viewBox="0 0 950 750"></svg>
-
-</div>
 </div>
 
 <script>
@@ -97,106 +67,130 @@ const heart = document.getElementById("heart");
 const decorazioni = document.getElementById("decorazioni");
 const firma = document.getElementById("firma");
 
-const ROSSO_CHIARO = [255,35,55];
-const BIANCO = [255,225,225];
-
 let fase = "rating";
 let voto = 0;
 let frame = 0;
 let tempoInizio = performance.now();
-let ultimoFrame = 0;
 
-function colore(rgb, intensita) {
-    intensita = Math.max(0, Math.min(1, intensita));
-    return `rgb(${rgb.map(c => Math.round(c*intensita)).join(",")})`;
+const ROSSO_CHIARO = [255,35,55];
+const ROSSO_SCuro = [65,0,8];
+const BIANCO = [255,225,225];
+
+function scalaSchermo() {
+    const s = Math.min(
+        window.innerWidth / 950,
+        window.innerHeight / 750
+    );
+    document.getElementById("stage").style.setProperty("--scale",s);
+}
+window.addEventListener("resize",scalaSchermo);
+scalaSchermo();
+
+function colore(rgb,intensita) {
+    intensita = Math.max(0,Math.min(1,intensita));
+    return `rgb(${rgb.map(c=>Math.round(c*intensita)).join(",")})`;
 }
 
-function el(tag, attrs = {}, parent = ui) {
-    const e = document.createElementNS(NS, tag);
-    for (const [k,v] of Object.entries(attrs)) {
+function elemento(tag,attributi,parent) {
+    const e = document.createElementNS(NS,tag);
+    for(const [k,v] of Object.entries(attributi)) {
         e.setAttribute(k,v);
     }
     parent.appendChild(e);
     return e;
 }
 
-function testo(parent, x, y, frase, dimensione, color,
-               font="Arial", stile="bold") {
-    const t = el("text", {
-        x, y,
-        fill: color,
-        "font-size": dimensione,
-        "font-family": font,
-        "font-weight": stile === "bold" ? "bold" : "normal",
-        "font-style": stile === "italic" ? "italic" : "normal",
-        "text-anchor": "middle"
-    }, parent);
-    t.textContent = frase;
-    return t;
+function testo(t,x,y,frase,dimensione,color,
+               font="Arial",stile="bold") {
+    const e=elemento("text",{
+        x,
+        y:750-y,
+        fill:color,
+        "font-size":dimensione,
+        "font-family":font,
+        "font-weight":stile==="bold"?"bold":"normal",
+        "font-style":stile==="italic"?"italic":"normal",
+        "text-anchor":"middle"
+    },t);
+    e.textContent=frase;
+    return e;
 }
 
-function testoGraduale(parent,x,y,frase,dimensione,color,progressione,
-                       font="Arial",stile="bold") {
-    progressione = Math.max(0,Math.min(1,progressione));
-    const lettere = progressione >= 1
+function testo_graduale(t,x,y,frase,dimensione,color,
+                        progressione,font="Arial",stile="bold") {
+    progressione=Math.max(0,Math.min(1,progressione));
+    const lettere=progressione>=1
         ? frase.length
-        : Math.floor(frase.length * progressione);
+        : Math.floor(frase.length*progressione);
 
-    return testo(parent,x,y,frase.slice(0,lettere),
-                 dimensione,color,font,stile);
+    testo(t,x,y,frase.slice(0,lettere),dimensione,
+          color,font,stile);
 }
 
 function pulsante(x,y,frase,intensita) {
-    const g = el("g",{"class":"click-area"},ui);
+    const c=colore([180,0,25],intensita);
 
-    el("rect",{
-        x:x-65,y:750-(y+23),
-        width:130,height:46,
+    const g=elemento("g",{"class":"click"},ui);
+
+    elemento("rect",{
+        x:x-65,
+        y:750-(y+23),
+        width:130,
+        height:46,
+        stroke:c,
         fill:"rgb(35,0,8)",
-        stroke:colore([180,0,25],intensita),
-        "stroke-width":2
+        "stroke-width":1
     },g);
 
-    testo(g,x,750-(y-7),frase,15,
-          colore(BIANCO,intensita));
+    testo(g,x,y-7,frase,15,colore(BIANCO,intensita));
 
     return g;
 }
 
-function schermataRating(intensita) {
-    ui.innerHTML = "";
+function schermata_rating(intensita) {
+    ui.innerHTML="";
 
-    testoGraduale(ui,475,620,
+    testo_graduale(
+        ui,0,130,
         "Quanto mi vuoi bene da 1 a 5?",
-        25,colore(ROSSO_CHIARO,intensita),intensita);
+        25,
+        colore(ROSSO_CHIARO,intensita),
+        intensita
+    );
 
     for(let i=0;i<5;i++) {
-        const x = 475 + (-120+i*60);
-        const y = 750-(-15);
+        const x=-120+i*60;
+        const y=-15;
 
-        testo(ui,x,y,voto>=i+1?"★":"☆",45,
+        testo(
+            ui,x,y,
+            voto>=i+1?"★":"☆",
+            45,
             voto>=i+1
-            ? colore([255,190,30],intensita)
-            : colore([170,130,50],intensita));
+                ?colore([255,190,30],intensita)
+                :colore([170,130,50],intensita)
+        );
 
-        const hit = el("rect",{
-            x:x-27,y:y-55,width:54,height:65,
+        const hit=elemento("rect",{
+            x:x-27,
+            y:750-(y+35),
+            width:54,
+            height:60,
             fill:"transparent",
-            "class":"click-area"
+            "class":"click"
         },ui);
 
         hit.addEventListener("click",()=>{
-            const posizione = i+1;
-            voto = posizione;
-            if(voto===5) passaA("domanda1");
+            voto=i+1;
+            if(voto===5) passa_a("domanda1");
         });
     }
 
-    testo(ui,475,850-750,"Scegli le stelline...",14,
-        "rgb(170,170,170)");
+    testo(ui,0,-100,"Scegli le stelline...",14,
+          "rgb(170,170,170)");
 }
 
-function schermataDomanda(frase,trascorso) {
+function schermata_domanda(frase,trascorso) {
     ui.innerHTML="";
 
     const comparsa=Math.min(1,trascorso/1.5);
@@ -205,25 +199,27 @@ function schermataDomanda(frase,trascorso) {
 
     if(trascorso>=1.5) intensita=scomparsa;
 
-    testoGraduale(ui,475,650,frase,27,
+    testo_graduale(
+        ui,0,100,frase,27,
         colore(ROSSO_CHIARO,intensita),
-        trascorso>=1.5?1:comparsa);
+        trascorso>=1.5?1:comparsa
+    );
 
-    const si=pulsante(375,780-750,"SÌ",intensita);
-    const no=pulsante(575,780-750,"NO",intensita);
+    const si=pulsante(-100,-30,"SÌ",intensita);
+    const no=pulsante(100,-30,"NO",intensita);
 
     si.addEventListener("click",()=>{
-        if(fase==="domanda1") passaA("domanda2");
-        else passaA("attesa");
+        if(fase==="domanda1") passa_a("domanda2");
+        else passa_a("attesa");
     });
 
     no.addEventListener("click",()=>{
-        if(fase==="domanda1") passaA("domanda2");
-        else passaA("attesa");
+        if(fase==="domanda1") passa_a("domanda2");
+        else passa_a("attesa");
     });
 }
 
-function schermataAttesa(trascorso) {
+function schermata_attesa(trascorso) {
     ui.innerHTML="";
 
     let intensita;
@@ -231,12 +227,14 @@ function schermataAttesa(trascorso) {
     else if(trascorso<4) intensita=1;
     else intensita=Math.max(0,1-(trascorso-4));
 
-    testoGraduale(ui,475,375,"Eccola qua...",35,
+    testo_graduale(
+        ui,0,0,"Eccola qua...",35,
         colore(ROSSO_CHIARO,intensita),
-        Math.min(1,trascorso/1.5));
+        Math.min(1,trascorso/1.5)
+    );
 }
 
-function puntiCuore(scala,angolo=0) {
+function punti_cuore(scala,angolo=0) {
     const punti=[];
 
     for(let i=0;i<=360;i++) {
@@ -244,87 +242,105 @@ function puntiCuore(scala,angolo=0) {
 
         let x=16*Math.pow(Math.sin(t),3);
         let y=13*Math.cos(t)-5*Math.cos(2*t)
-            -2*Math.cos(3*t)-Math.cos(4*t);
+             -2*Math.cos(3*t)-Math.cos(4*t);
 
         x*=scala;
         y*=scala;
 
         const xr=x*Math.cos(angolo);
-
         punti.push([475+xr,375-y]);
     }
     return punti;
 }
 
-function percorso(punti) {
-    return punti.map((p,i)=>
+function path_punti(punti,chiuso=true) {
+    let d=punti.map((p,i)=>
         (i===0?"M":"L")+p[0]+" "+p[1]
-    ).join(" ")+" Z";
+    ).join(" ");
+    if(chiuso) d+=" Z";
+    return d;
 }
 
-function disegnaContorno(progressione) {
+function disegna_cuore_pieno(scala,angolo=0) {
     heart.innerHTML="";
-    const punti=puntiCuore(12);
+
+    const ombra=punti_cuore(scala*1.06,angolo);
+
+    elemento("path",{
+        d:path_punti(ombra),
+        fill:"rgb(30,0,5)"
+    },heart);
+
+    const colori=[
+        [85,0,12],
+        [105,0,15],
+        [130,0,18],
+        [155,0,22],
+        [180,0,27],
+        [205,5,32],
+        [225,10,40],
+        [245,20,50],
+        [255,40,65],
+        [255,65,80]
+    ];
+
+    for(let i=0;i<colori.length;i++) {
+        const fattore=1-i*0.075;
+        const punti=punti_cuore(scala*fattore,angolo);
+
+        elemento("path",{
+            d:path_punti(punti),
+            fill:`rgb(${colori[i].join(",")})`
+        },heart);
+    }
+
+    if(Math.abs(Math.cos(angolo))>0.65) {
+        elemento("circle",{
+            cx:430,cy:285,r:7.5,
+            fill:"rgb(255,130,140)"
+        },heart);
+
+        elemento("circle",{
+            cx:450,cy:270,r:3.5,
+            fill:"rgb(255,190,190)"
+        },heart);
+    }
+}
+
+function disegna_contorno(progressione) {
+    heart.innerHTML="";
+
+    const punti=punti_cuore(12);
     const quanti=Math.max(2,Math.floor(punti.length*progressione));
 
-    el("path",{
-        d:punti.slice(0,quanti).map((p,i)=>
-            (i===0?"M":"L")+p[0]+" "+p[1]
-        ).join(" "),
+    elemento("path",{
+        d:path_punti(punti.slice(0,quanti),false),
         fill:"none",
         stroke:"rgb(255,35,55)",
         "stroke-width":3
     },heart);
 }
 
-function disegnaCuorePieno(scala,angolo=0) {
-    heart.innerHTML="";
-
-    const colori=[
-        [85,0,12],[105,0,15],[130,0,18],
-        [155,0,22],[180,0,27],[205,5,32],
-        [225,10,40],[245,20,50],[255,40,65],[255,65,80]
-    ];
-
-    const ombra=puntiCuore(scala*1.06,angolo);
-    el("path",{d:percorso(ombra),fill:"rgb(30,0,5)"},heart);
-
-    for(let i=0;i<colori.length;i++) {
-        const fattore=1-i*0.075;
-        const punti=puntiCuore(scala*fattore,angolo);
-
-        el("path",{
-            d:percorso(punti),
-            fill:`rgb(${colori[i].join(",")})`
-        },heart);
-    }
-
-    if(Math.abs(Math.cos(angolo))>0.65) {
-        el("ellipse",{
-            cx:430,cy:285,rx:7.5,ry:7.5,
-            fill:"rgb(255,130,140)"
-        },heart);
-
-        el("ellipse",{
-            cx:450,cy:270,rx:3.5,ry:3.5,
-            fill:"rgb(255,190,190)"
-        },heart);
-    }
-}
-
-function scritteCuore(progressione) {
+function scritte_cuore(progressione) {
     decorazioni.innerHTML="";
 
-    testoGraduale(decorazioni,475,390,
-        "Matte",43,"rgb(255,220,220)",
-        progressione,"Brush Script MT","italic");
+    testo_graduale(
+        decorazioni,0,-15,
+        "Matte",43,
+        "rgb(255,220,220)",
+        progressione,
+        "Brush Script MT","italic"
+    );
 
-    testoGraduale(decorazioni,475,460,
+    testo_graduale(
+        decorazioni,0,-85,
         "TI VOGLIO BENE",15,
-        "rgb(255,100,115)",progressione);
+        "rgb(255,100,115)",
+        progressione
+    );
 }
 
-function disegnaLuci(intensita) {
+function disegna_luci(intensita) {
     for(let i=0;i<30;i++) {
         const angolo=i*2*Math.PI/30+frame*0.008;
 
@@ -334,7 +350,7 @@ function disegnaLuci(intensita) {
         const pulsazione=0.5+0.5*Math.sin(frame*0.1+i);
         const luminosita=intensita*(0.5+pulsazione*0.5);
 
-        el("circle",{
+        elemento("circle",{
             cx:x,cy:y,
             r:3+pulsazione*2.5,
             fill:colore(ROSSO_CHIARO,luminosita)
@@ -342,17 +358,20 @@ function disegnaLuci(intensita) {
     }
 }
 
-function mostraFirma(progressione) {
+function mostra_firma(progressione) {
     firma.innerHTML="";
 
-    testoGraduale(firma,805,660,
+    testo_graduale(
+        firma,330,-285,
         "Lotty",32,
         colore([230,110,130],progressione),
-        progressione,"Brush Script MT","italic");
+        progressione,
+        "Brush Script MT","italic"
+    );
 }
 
-function passaA(nuovaFase) {
-    fase=nuovaFase;
+function passa_a(nuova_fase) {
+    fase=nuova_fase;
     tempoInizio=performance.now();
     frame=0;
 
@@ -362,71 +381,84 @@ function passaA(nuovaFase) {
     firma.innerHTML="";
 }
 
-function animazione(timestamp) {
-    if(timestamp-ultimoFrame<35) {
-        requestAnimationFrame(animazione);
-        return;
-    }
-
-    ultimoFrame=timestamp;
-
-    const trascorso=(timestamp-tempoInizio)/1000;
+function animazione() {
+    const trascorso=(performance.now()-tempoInizio)/1000;
     frame++;
 
     if(fase==="rating") {
-        schermataRating(Math.min(1,trascorso/1.5));
+        schermata_rating(Math.min(1,trascorso/1.5));
     }
 
     else if(fase==="domanda1") {
-        schermataDomanda("Sei pronto a vedere la sorpresa?",trascorso);
-        if(trascorso>=8) passaA("domanda2");
+        schermata_domanda("Sei pronto a vedere la sorpresa?",trascorso);
+        if(trascorso>=8) passa_a("domanda2");
     }
 
     else if(fase==="domanda2") {
-        schermataDomanda("Sicuro sicuro?",trascorso);
-        if(trascorso>=8) passaA("attesa");
+        schermata_domanda("Sicuro sicuro?",trascorso);
+        if(trascorso>=8) passa_a("attesa");
     }
 
     else if(fase==="attesa") {
-        schermataAttesa(trascorso);
-        if(trascorso>=5) passaA("cuore");
+        schermata_attesa(trascorso);
+        if(trascorso>=5) passa_a("cuore");
     }
 
     else if(fase==="cuore") {
         if(trascorso<3) {
-            disegnaContorno(trascorso/3);
+            disegna_contorno(trascorso/3);
         }
 
         else if(trascorso<4.5) {
-            disegnaCuorePieno(12);
+            disegna_cuore_pieno(12);
         }
 
         else if(trascorso<6.5) {
-            disegnaCuorePieno(12);
-            scritteCuore((trascorso-4.5)/2);
+            disegna_cuore_pieno(12);
+            scritte_cuore((trascorso-4.5)/2);
         }
 
         else {
             const pulsazione=1+0.035*Math.sin(frame*0.08);
             const rotazione=frame*0.025;
 
-            disegnaCuorePieno(12*pulsazione,rotazione);
-            scritteCuore(1);
-
-            decorazioni.innerHTML="";
-            disegnaLuci(1);
+            disegna_cuore_pieno(12*pulsazione,rotazione);
+            scritte_cuore(1);
+            disegna_luci(1);
 
             if(trascorso>9) {
                 const progressione=Math.min(1,(trascorso-9)/2);
-                mostraFirma(progressione);
+                mostra_firma(progressione);
             }
         }
     }
 
-    requestAnimationFrame(animazione);
+    setTimeout(animazione,35);
 }
 
-requestAnimationFrame(animazione);
+function coordinate(event) {
+    const rect=document.getElementById("stage").getBoundingClientRect();
+
+    return {
+        x:(event.clientX-rect.left)*950/rect.width-475,
+        y:375-(event.clientY-rect.top)*750/rect.height
+    };
+}
+
+document.getElementById("ui").addEventListener("click",event=>{
+    if(fase!=="rating") return;
+
+    const p=coordinate(event);
+
+    if(p.x>-160 && p.x<160 && p.y>-70 && p.y<50) {
+        const posizione=Math.round((p.x+120)/60)+1;
+        voto=Math.max(1,Math.min(5,posizione));
+
+        if(voto===5) passa_a("domanda1");
+    }
+});
+
+animazione();
 </script>
 </body>
 </html>
