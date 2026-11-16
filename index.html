@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Una sorpresa per Matte</title>
 
 <style>
@@ -34,10 +34,10 @@ svg {
     overflow: visible;
 }
 
-#ui { z-index: 5; }
 #heart { z-index: 2; }
 #decorazioni { z-index: 3; }
 #firma { z-index: 4; }
+#ui { z-index: 5; }
 
 text {
     text-anchor: middle;
@@ -52,11 +52,12 @@ text {
 </head>
 
 <body>
+
 <div id="stage">
-<svg id="heart" viewBox="0 0 950 750"></svg>
-<svg id="decorazioni" viewBox="0 0 950 750"></svg>
-<svg id="ui" viewBox="0 0 950 750"></svg>
-<svg id="firma" viewBox="0 0 950 750"></svg>
+    <svg id="heart" viewBox="0 0 950 750"></svg>
+    <svg id="decorazioni" viewBox="0 0 950 750"></svg>
+    <svg id="ui" viewBox="0 0 950 750"></svg>
+    <svg id="firma" viewBox="0 0 950 750"></svg>
 </div>
 
 <script>
@@ -73,7 +74,6 @@ let frame = 0;
 let tempoInizio = performance.now();
 
 const ROSSO_CHIARO = [255,35,55];
-const ROSSO_SCuro = [65,0,8];
 const BIANCO = [255,225,225];
 
 function scalaSchermo() {
@@ -81,197 +81,248 @@ function scalaSchermo() {
         window.innerWidth / 950,
         window.innerHeight / 750
     );
-    document.getElementById("stage").style.setProperty("--scale",s);
+
+    document.getElementById("stage")
+        .style.setProperty("--scale", s);
 }
-window.addEventListener("resize",scalaSchermo);
+
+window.addEventListener("resize", scalaSchermo);
 scalaSchermo();
 
-function colore(rgb,intensita) {
-    intensita = Math.max(0,Math.min(1,intensita));
-    return `rgb(${rgb.map(c=>Math.round(c*intensita)).join(",")})`;
+function colore(rgb, intensita) {
+    intensita = Math.max(0, Math.min(1, intensita));
+
+    return `rgb(${rgb.map(c =>
+        Math.round(c * intensita)
+    ).join(",")})`;
 }
 
-function elemento(tag,attributi,parent) {
-    const e = document.createElementNS(NS,tag);
-    for(const [k,v] of Object.entries(attributi)) {
+function elemento(tag, attributi, parent) {
+    const e = document.createElementNS(NS, tag);
+
+    for (const [k,v] of Object.entries(attributi)) {
         e.setAttribute(k,v);
     }
+
     parent.appendChild(e);
     return e;
 }
 
-function testo(t,x,y,frase,dimensione,color,
-               font="Arial",stile="bold") {
-    const e=elemento("text",{
-        x,
-        y:750-y,
-        fill:color,
-        "font-size":dimensione,
-        "font-family":font,
-        "font-weight":stile==="bold"?"bold":"normal",
-        "font-style":stile==="italic"?"italic":"normal",
-        "text-anchor":"middle"
-    },t);
-    e.textContent=frase;
+/* COORDINATE CORRETTE: origine al centro dello schermo */
+
+function testo(t, x, y, frase, dimensione, color,
+               font="Arial", stile="bold") {
+
+    const e = elemento("text", {
+        x: 475 + x,
+        y: 375 - y,
+        fill: color,
+        "font-size": dimensione,
+        "font-family": font,
+        "font-weight": stile === "bold" ? "bold" : "normal",
+        "font-style": stile === "italic" ? "italic" : "normal",
+        "text-anchor": "middle"
+    }, t);
+
+    e.textContent = frase;
     return e;
 }
 
-function testo_graduale(t,x,y,frase,dimensione,color,
-                        progressione,font="Arial",stile="bold") {
-    progressione=Math.max(0,Math.min(1,progressione));
-    const lettere=progressione>=1
-        ? frase.length
-        : Math.floor(frase.length*progressione);
+function testo_graduale(t, x, y, frase, dimensione, color,
+                        progressione, font="Arial", stile="bold") {
 
-    testo(t,x,y,frase.slice(0,lettere),dimensione,
-          color,font,stile);
+    progressione = Math.max(0, Math.min(1, progressione));
+
+    const lettere = progressione >= 1
+        ? frase.length
+        : Math.floor(frase.length * progressione);
+
+    testo(t, x, y, frase.slice(0, lettere),
+          dimensione, color, font, stile);
 }
 
-function pulsante(x,y,frase,intensita) {
-    const c=colore([180,0,25],intensita);
+function pulsante(x, y, frase, intensita) {
+    const c = colore([180,0,25], intensita);
+    const g = elemento("g", {"class":"click"}, ui);
 
-    const g=elemento("g",{"class":"click"},ui);
+    elemento("rect", {
+        x: 475 + x - 65,
+        y: 375 - (y + 23),
+        width: 130,
+        height: 46,
+        stroke: c,
+        fill: "rgb(35,0,8)",
+        "stroke-width": 1
+    }, g);
 
-    elemento("rect",{
-        x:x-65,
-        y:750-(y+23),
-        width:130,
-        height:46,
-        stroke:c,
-        fill:"rgb(35,0,8)",
-        "stroke-width":1
-    },g);
-
-    testo(g,x,y-7,frase,15,colore(BIANCO,intensita));
+    testo(g, x, y - 7, frase, 15,
+          colore(BIANCO, intensita));
 
     return g;
 }
 
+/* SCHERMATA INIZIALE */
+
 function schermata_rating(intensita) {
-    ui.innerHTML="";
+    ui.innerHTML = "";
 
     testo_graduale(
-        ui,0,130,
+        ui, 0, 130,
         "Quanto mi vuoi bene da 1 a 5?",
         25,
-        colore(ROSSO_CHIARO,intensita),
+        colore(ROSSO_CHIARO, intensita),
         intensita
     );
 
-    for(let i=0;i<5;i++) {
-        const x=-120+i*60;
-        const y=-15;
+    for (let i = 0; i < 5; i++) {
+        const x = -120 + i * 60;
+        const y = -15;
 
         testo(
-            ui,x,y,
-            voto>=i+1?"★":"☆",
+            ui, x, y,
+            voto >= i + 1 ? "★" : "☆",
             45,
-            voto>=i+1
-                ?colore([255,190,30],intensita)
-                :colore([170,130,50],intensita)
+            voto >= i + 1
+                ? colore([255,190,30], intensita)
+                : colore([170,130,50], intensita)
         );
 
-        const hit=elemento("rect",{
-            x:x-27,
-            y:750-(y+35),
-            width:54,
-            height:60,
-            fill:"transparent",
-            "class":"click"
-        },ui);
+        const hit = elemento("rect", {
+            x: 475 + x - 27,
+            y: 375 - (y + 35),
+            width: 54,
+            height: 60,
+            fill: "transparent",
+            "class": "click"
+        }, ui);
 
-        hit.addEventListener("click",()=>{
-            voto=i+1;
-            if(voto===5) passa_a("domanda1");
+        hit.addEventListener("click", () => {
+            voto = i + 1;
+
+            if (voto === 5) {
+                passa_a("domanda1");
+            }
         });
     }
 
-    testo(ui,0,-100,"Scegli le stelline...",14,
+    testo(ui, 0, -100,
+          "Scegli le stelline...", 14,
           "rgb(170,170,170)");
 }
 
-function schermata_domanda(frase,trascorso) {
-    ui.innerHTML="";
+/* DOMANDE */
 
-    const comparsa=Math.min(1,trascorso/1.5);
-    const scomparsa=Math.min(1,Math.max(0,(8-trascorso)/1.5));
-    let intensita=Math.min(comparsa,scomparsa);
+function schermata_domanda(frase, trascorso) {
+    ui.innerHTML = "";
 
-    if(trascorso>=1.5) intensita=scomparsa;
-
-    testo_graduale(
-        ui,0,100,frase,27,
-        colore(ROSSO_CHIARO,intensita),
-        trascorso>=1.5?1:comparsa
+    const comparsa = Math.min(1, trascorso / 1.5);
+    const scomparsa = Math.min(
+        1,
+        Math.max(0, (8 - trascorso) / 1.5)
     );
 
-    const si=pulsante(-100,-30,"SÌ",intensita);
-    const no=pulsante(100,-30,"NO",intensita);
+    const intensita = Math.min(comparsa, scomparsa);
 
-    si.addEventListener("click",()=>{
-        if(fase==="domanda1") passa_a("domanda2");
-        else passa_a("attesa");
+    testo_graduale(
+        ui, 0, 100,
+        frase,
+        27,
+        colore(ROSSO_CHIARO, intensita),
+        trascorso >= 1.5 ? 1 : comparsa
+    );
+
+    const si = pulsante(-100, -30, "SÌ", intensita);
+    const no = pulsante(100, -30, "NO", intensita);
+
+    si.addEventListener("click", () => {
+        if (fase === "domanda1") {
+            passa_a("domanda2");
+        } else {
+            passa_a("attesa");
+        }
     });
 
-    no.addEventListener("click",()=>{
-        if(fase==="domanda1") passa_a("domanda2");
-        else passa_a("attesa");
+    no.addEventListener("click", () => {
+        if (fase === "domanda1") {
+            passa_a("domanda2");
+        } else {
+            passa_a("attesa");
+        }
     });
 }
+
+/* ATTESA */
 
 function schermata_attesa(trascorso) {
-    ui.innerHTML="";
+    ui.innerHTML = "";
 
     let intensita;
-    if(trascorso<1.5) intensita=trascorso/1.5;
-    else if(trascorso<4) intensita=1;
-    else intensita=Math.max(0,1-(trascorso-4));
+
+    if (trascorso < 1.5) {
+        intensita = trascorso / 1.5;
+    } else if (trascorso < 4) {
+        intensita = 1;
+    } else {
+        intensita = Math.max(0, 1 - (trascorso - 4));
+    }
 
     testo_graduale(
-        ui,0,0,"Eccola qua...",35,
-        colore(ROSSO_CHIARO,intensita),
-        Math.min(1,trascorso/1.5)
+        ui, 0, 0,
+        "Eccola qua...",
+        35,
+        colore(ROSSO_CHIARO, intensita),
+        Math.min(1, trascorso / 1.5)
     );
 }
 
-function punti_cuore(scala,angolo=0) {
-    const punti=[];
+/* CUORE */
 
-    for(let i=0;i<=360;i++) {
-        const t=i*Math.PI/180;
+function punti_cuore(scala, angolo=0) {
+    const punti = [];
 
-        let x=16*Math.pow(Math.sin(t),3);
-        let y=13*Math.cos(t)-5*Math.cos(2*t)
-             -2*Math.cos(3*t)-Math.cos(4*t);
+    for (let i = 0; i <= 360; i++) {
+        const t = i * Math.PI / 180;
 
-        x*=scala;
-        y*=scala;
+        let x = 16 * Math.pow(Math.sin(t), 3);
 
-        const xr=x*Math.cos(angolo);
-        punti.push([475+xr,375-y]);
+        let y = 13 * Math.cos(t)
+              - 5 * Math.cos(2*t)
+              - 2 * Math.cos(3*t)
+              - Math.cos(4*t);
+
+        x *= scala;
+        y *= scala;
+
+        const xr = x * Math.cos(angolo) - y * Math.sin(angolo);
+        const yr = x * Math.sin(angolo) + y * Math.cos(angolo);
+
+        punti.push([475 + xr, 375 - yr]);
     }
+
     return punti;
 }
 
-function path_punti(punti,chiuso=true) {
-    let d=punti.map((p,i)=>
-        (i===0?"M":"L")+p[0]+" "+p[1]
+function path_punti(punti, chiuso=true) {
+    let d = punti.map((p,i) =>
+        (i === 0 ? "M" : "L") + p[0] + " " + p[1]
     ).join(" ");
-    if(chiuso) d+=" Z";
+
+    if (chiuso) d += " Z";
+
     return d;
 }
 
-function disegna_cuore_pieno(scala,angolo=0) {
-    heart.innerHTML="";
+function disegna_cuore_pieno(scala, angolo=0) {
+    heart.innerHTML = "";
 
-    const ombra=punti_cuore(scala*1.06,angolo);
+    const ombra = punti_cuore(scala * 1.06, angolo);
 
-    elemento("path",{
-        d:path_punti(ombra),
-        fill:"rgb(30,0,5)"
-    },heart);
+    elemento("path", {
+        d: path_punti(ombra),
+        fill: "rgb(30,0,5)"
+    }, heart);
 
-    const colori=[
+    const colori = [
         [85,0,12],
         [105,0,15],
         [130,0,18],
@@ -284,181 +335,225 @@ function disegna_cuore_pieno(scala,angolo=0) {
         [255,65,80]
     ];
 
-    for(let i=0;i<colori.length;i++) {
-        const fattore=1-i*0.075;
-        const punti=punti_cuore(scala*fattore,angolo);
+    for (let i = 0; i < colori.length; i++) {
+        const fattore = 1 - i * 0.075;
+        const punti = punti_cuore(scala * fattore, angolo);
 
-        elemento("path",{
-            d:path_punti(punti),
-            fill:`rgb(${colori[i].join(",")})`
-        },heart);
+        elemento("path", {
+            d: path_punti(punti),
+            fill: `rgb(${colori[i].join(",")})`
+        }, heart);
     }
 
-    if(Math.abs(Math.cos(angolo))>0.65) {
-        elemento("circle",{
-            cx:430,cy:285,r:7.5,
-            fill:"rgb(255,130,140)"
-        },heart);
+    if (Math.abs(Math.cos(angolo)) > 0.65) {
+        elemento("circle", {
+            cx: 430, cy: 285, r: 7.5,
+            fill: "rgb(255,130,140)"
+        }, heart);
 
-        elemento("circle",{
-            cx:450,cy:270,r:3.5,
-            fill:"rgb(255,190,190)"
-        },heart);
+        elemento("circle", {
+            cx: 450, cy: 270, r: 3.5,
+            fill: "rgb(255,190,190)"
+        }, heart);
     }
 }
 
 function disegna_contorno(progressione) {
-    heart.innerHTML="";
+    heart.innerHTML = "";
 
-    const punti=punti_cuore(12);
-    const quanti=Math.max(2,Math.floor(punti.length*progressione));
+    const punti = punti_cuore(12);
+    const quanti = Math.max(
+        2,
+        Math.floor(punti.length * progressione)
+    );
 
-    elemento("path",{
-        d:path_punti(punti.slice(0,quanti),false),
-        fill:"none",
-        stroke:"rgb(255,35,55)",
-        "stroke-width":3
-    },heart);
+    elemento("path", {
+        d: path_punti(punti.slice(0, quanti), false),
+        fill: "none",
+        stroke: "rgb(255,35,55)",
+        "stroke-width": 3
+    }, heart);
 }
 
+/* SCRITTE NEL CUORE */
+
 function scritte_cuore(progressione) {
-    decorazioni.innerHTML="";
+    decorazioni.innerHTML = "";
 
     testo_graduale(
-        decorazioni,0,-15,
-        "Matte",43,
+        decorazioni, 0, -15,
+        "Matte",
+        43,
         "rgb(255,220,220)",
         progressione,
-        "Brush Script MT","italic"
+        "Brush Script MT",
+        "italic"
     );
 
     testo_graduale(
-        decorazioni,0,-85,
-        "TI VOGLIO BENE",15,
+        decorazioni, 0, -85,
+        "TI VOGLIO BENE",
+        15,
         "rgb(255,100,115)",
         progressione
     );
 }
 
+/* LUCI */
+
 function disegna_luci(intensita) {
-    for(let i=0;i<30;i++) {
-        const angolo=i*2*Math.PI/30+frame*0.008;
+    for (let i = 0; i < 30; i++) {
+        const angolo = i * 2 * Math.PI / 30 + frame * 0.008;
 
-        const x=475+245*Math.cos(angolo);
-        const y=375-195*Math.sin(angolo);
+        const x = 475 + 245 * Math.cos(angolo);
+        const y = 375 - 195 * Math.sin(angolo);
 
-        const pulsazione=0.5+0.5*Math.sin(frame*0.1+i);
-        const luminosita=intensita*(0.5+pulsazione*0.5);
+        const pulsazione = 0.5 + 0.5 * Math.sin(frame * 0.1 + i);
+        const luminosita = intensita * (0.5 + pulsazione * 0.5);
 
-        elemento("circle",{
-            cx:x,cy:y,
-            r:3+pulsazione*2.5,
-            fill:colore(ROSSO_CHIARO,luminosita)
-        },decorazioni);
+        elemento("circle", {
+            cx: x,
+            cy: y,
+            r: 3 + pulsazione * 2.5,
+            fill: colore(ROSSO_CHIARO, luminosita)
+        }, decorazioni);
     }
 }
 
+/* FIRMA */
+
 function mostra_firma(progressione) {
-    firma.innerHTML="";
+    firma.innerHTML = "";
 
     testo_graduale(
-        firma,330,-285,
-        "Lotty",32,
-        colore([230,110,130],progressione),
+        firma, 330, -285,
+        "Lotty",
+        32,
+        colore([230,110,130], progressione),
         progressione,
-        "Brush Script MT","italic"
+        "Brush Script MT",
+        "italic"
     );
 }
 
-function passa_a(nuova_fase) {
-    fase=nuova_fase;
-    tempoInizio=performance.now();
-    frame=0;
+/* CAMBIO FASE */
 
-    ui.innerHTML="";
-    heart.innerHTML="";
-    decorazioni.innerHTML="";
-    firma.innerHTML="";
+function passa_a(nuova_fase) {
+    fase = nuova_fase;
+    tempoInizio = performance.now();
+    frame = 0;
+
+    ui.innerHTML = "";
+    heart.innerHTML = "";
+    decorazioni.innerHTML = "";
+    firma.innerHTML = "";
 }
 
+/* ANIMAZIONE */
+
 function animazione() {
-    const trascorso=(performance.now()-tempoInizio)/1000;
+    const trascorso = (performance.now() - tempoInizio) / 1000;
     frame++;
 
-    if(fase==="rating") {
-        schermata_rating(Math.min(1,trascorso/1.5));
+    if (fase === "rating") {
+        schermata_rating(Math.min(1, trascorso / 1.5));
     }
 
-    else if(fase==="domanda1") {
-        schermata_domanda("Sei pronto a vedere la sorpresa?",trascorso);
-        if(trascorso>=8) passa_a("domanda2");
+    else if (fase === "domanda1") {
+        schermata_domanda(
+            "Sei pronto a vedere la sorpresa?",
+            trascorso
+        );
+
+        if (trascorso >= 8) {
+            passa_a("domanda2");
+        }
     }
 
-    else if(fase==="domanda2") {
-        schermata_domanda("Sicuro sicuro?",trascorso);
-        if(trascorso>=8) passa_a("attesa");
+    else if (fase === "domanda2") {
+        schermata_domanda(
+            "Sicuro sicuro?",
+            trascorso
+        );
+
+        if (trascorso >= 8) {
+            passa_a("attesa");
+        }
     }
 
-    else if(fase==="attesa") {
+    else if (fase === "attesa") {
         schermata_attesa(trascorso);
-        if(trascorso>=5) passa_a("cuore");
+
+        if (trascorso >= 5) {
+            passa_a("cuore");
+        }
     }
 
-    else if(fase==="cuore") {
-        if(trascorso<3) {
-            disegna_contorno(trascorso/3);
+    else if (fase === "cuore") {
+        if (trascorso < 3) {
+            disegna_contorno(trascorso / 3);
         }
 
-        else if(trascorso<4.5) {
+        else if (trascorso < 4.5) {
             disegna_cuore_pieno(12);
         }
 
-        else if(trascorso<6.5) {
+        else if (trascorso < 6.5) {
             disegna_cuore_pieno(12);
-            scritte_cuore((trascorso-4.5)/2);
+            scritte_cuore((trascorso - 4.5) / 2);
         }
 
         else {
-            const pulsazione=1+0.035*Math.sin(frame*0.08);
-            const rotazione=frame*0.025;
+            const pulsazione = 1 + 0.035 * Math.sin(frame * 0.08);
+            const rotazione = frame * 0.025;
 
-            disegna_cuore_pieno(12*pulsazione,rotazione);
+            disegna_cuore_pieno(12 * pulsazione, rotazione);
             scritte_cuore(1);
             disegna_luci(1);
 
-            if(trascorso>9) {
-                const progressione=Math.min(1,(trascorso-9)/2);
+            if (trascorso > 9) {
+                const progressione = Math.min(
+                    1,
+                    (trascorso - 9) / 2
+                );
+
                 mostra_firma(progressione);
             }
         }
     }
 
-    setTimeout(animazione,35);
+    setTimeout(animazione, 35);
 }
 
+/* CLICK SULLE STELLE */
+
 function coordinate(event) {
-    const rect=document.getElementById("stage").getBoundingClientRect();
+    const rect = document.getElementById("stage").getBoundingClientRect();
 
     return {
-        x:(event.clientX-rect.left)*950/rect.width-475,
-        y:375-(event.clientY-rect.top)*750/rect.height
+        x: (event.clientX - rect.left) * 950 / rect.width - 475,
+        y: 375 - (event.clientY - rect.top) * 750 / rect.height
     };
 }
 
-document.getElementById("ui").addEventListener("click",event=>{
-    if(fase!=="rating") return;
+ui.addEventListener("click", event => {
+    if (fase !== "rating") return;
 
-    const p=coordinate(event);
+    const p = coordinate(event);
 
-    if(p.x>-160 && p.x<160 && p.y>-70 && p.y<50) {
-        const posizione=Math.round((p.x+120)/60)+1;
-        voto=Math.max(1,Math.min(5,posizione));
+    if (p.x > -160 && p.x < 160 && p.y > -70 && p.y < 50) {
+        const posizione = Math.round((p.x + 120) / 60) + 1;
 
-        if(voto===5) passa_a("domanda1");
+        voto = Math.max(1, Math.min(5, posizione));
+
+        if (voto === 5) {
+            passa_a("domanda1");
+        }
     }
 });
 
 animazione();
+
 </script>
 </body>
 </html>
