@@ -46,6 +46,12 @@ let frame = 0;
 let tempoInizio = performance.now();
 let ultimoFrame = 0;
 
+let messaggioRating = "";
+let ratingVaiAvanti = false;
+let tempoRating = 0;
+
+let messaggioDomanda = "";
+
 const ROSSO_CHIARO = [255, 35, 55];
 const ROSSO_SCuro = [65, 0, 8];
 const BIANCO = [255, 225, 225];
@@ -203,7 +209,7 @@ function schermata_rating(intensita) {
 
     testo_graduale(
         0, 130,
-        "Quanto sei curiosa di scoprire cosa ti aspetta?",
+        "Quanto sei curioso di scoprire cosa ti aspetta?",
         25,
         colore(ROSSO_CHIARO, intensita),
         intensita
@@ -239,6 +245,15 @@ function schermata_rating(intensita) {
         14,
         [170, 170, 170]
     );
+
+    if (messaggioRating) {
+        testo(
+            0, -155,
+            messaggioRating,
+            17,
+            colore(ROSSO_CHIARO, intensita)
+        );
+    }
 }
 
 
@@ -273,6 +288,15 @@ function schermata_domanda(frase, trascorso) {
 
     pulsante(-100, -30, "SÌ", intensita);
     pulsante(100, -30, "NO", intensita);
+
+    if (messaggioDomanda) {
+        testo(
+            0, -115,
+            messaggioDomanda,
+            17,
+            colore(ROSSO_CHIARO, intensita)
+        );
+    }
 }
 
 
@@ -544,6 +568,8 @@ function passa_a(nuova_fase) {
     tempoInizio = performance.now();
     frame = 0;
 
+    messaggioDomanda = "";
+
     pulisci();
 }
 
@@ -563,37 +589,88 @@ function click(event) {
         375 - (event.clientY - rect.top) * 750 / rect.height;
 
 
+    // ----------------------------------------------
+    // STELLINE
+    // ----------------------------------------------
+
     if (fase === "rating") {
 
-        if (x > -160 && x < 160 && y > -70 && y < 50) {
+        if (
+            !ratingVaiAvanti &&
+            x > -160 && x < 160 &&
+            y > -70 && y < 50
+        ) {
 
-            let posizione = Math.floor((x + 120) / 60 + 0.5) + 1;
+            let posizione = Math.round((x + 120) / 60) + 1;
 
             posizione = Math.max(1, Math.min(5, posizione));
 
             voto = posizione;
 
+            const risposte = [
+                "Solo una?! Mi stai deludendo! 😂",
+                "Due stelline? Puoi fare di meglio!",
+                "Tre? Mi aspettavo più entusiasmo!",
+                "Quattro! Dai, manca pochissimo!",
+                "Ecco! Questa è la risposta giusta! ❤️"
+            ];
+
+            messaggioRating = risposte[voto - 1];
+
             if (voto === 5) {
-                passa_a("domanda1");
+
+                ratingVaiAvanti = true;
+                tempoRating = performance.now();
+
             } else {
-                voto = 0;
+
+                ratingVaiAvanti = false;
             }
         }
     }
 
+
+    // ----------------------------------------------
+    // PULSANTI SÌ E NO
+    // ----------------------------------------------
+
     else if (fase === "domanda1" || fase === "domanda2") {
 
-        if (y > -175 && y < 30) {
+        if (y > -53 && y < -7) {
 
-            if (fase === "domanda1") {
-                passa_a("domanda2");
-            } else {
-                passa_a("attesa");
+            // PULSANTE SÌ
+            if (x > -165 && x < -35) {
+
+                if (fase === "domanda1") {
+                    passa_a("domanda2");
+                } else {
+                    passa_a("attesa");
+                }
+            }
+
+            // PULSANTE NO
+            else if (x > 35 && x < 165) {
+
+                if (fase === "domanda1") {
+
+                    messaggioDomanda =
+                        "Eh no, ormai sei qui! 😂";
+
+                } else {
+
+                    messaggioDomanda =
+                        "Lo sapevo che avresti detto no! 😏";
+                }
+
+                // Riparte il tempo della domanda
+                tempoInizio = performance.now();
             }
         }
     }
 }
 
+
+// Riconoscimento immediato del tocco e del click.
 canvas.addEventListener("pointerdown", event => {
     event.preventDefault();
     click(event);
@@ -620,13 +697,28 @@ function animazione(ora) {
     frame++;
 
 
+    // ----------------------------------------------
+    // RATING
+    // ----------------------------------------------
+
     if (fase === "rating") {
 
         const intensita = Math.min(1, trascorso / 1.5);
 
         schermata_rating(intensita);
+
+        if (
+            ratingVaiAvanti &&
+            performance.now() - tempoRating >= 1200
+        ) {
+            passa_a("domanda1");
+        }
     }
 
+
+    // ----------------------------------------------
+    // PRIMA DOMANDA
+    // ----------------------------------------------
 
     else if (fase === "domanda1") {
 
@@ -641,6 +733,10 @@ function animazione(ora) {
     }
 
 
+    // ----------------------------------------------
+    // SECONDA DOMANDA
+    // ----------------------------------------------
+
     else if (fase === "domanda2") {
 
         schermata_domanda(
@@ -654,6 +750,10 @@ function animazione(ora) {
     }
 
 
+    // ----------------------------------------------
+    // ECCOLA QUA
+    // ----------------------------------------------
+
     else if (fase === "attesa") {
 
         schermata_attesa(trascorso);
@@ -663,6 +763,10 @@ function animazione(ora) {
         }
     }
 
+
+    // ----------------------------------------------
+    // CUORE
+    // ----------------------------------------------
 
     else if (fase === "cuore") {
 
@@ -691,8 +795,13 @@ function animazione(ora) {
 
         else {
 
+            // Pulsazione
+
             const pulsazione =
                 1 + 0.035 * Math.sin(frame * 0.08);
+
+
+            // Rotazione verticale sul proprio asse
 
             const rotazione = frame * 0.025;
 
@@ -704,6 +813,9 @@ function animazione(ora) {
             scritte_cuore(1);
 
             disegna_luci(1);
+
+
+            // Firma Lotty: compare solo alla fine
 
             if (trascorso > 9) {
 
