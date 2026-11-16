@@ -1,0 +1,612 @@
+import turtle
+import math
+import time
+
+# ==================================================
+# CONFIGURAZIONE
+# ==================================================
+
+screen = turtle.Screen()
+screen.setup(950, 750)
+screen.bgcolor("black")
+screen.title("Una sorpresa per Matte")
+screen.tracer(0)
+screen.colormode(255)
+
+ui = turtle.Turtle()
+ui.hideturtle()
+ui.speed(0)
+
+heart = turtle.Turtle()
+heart.hideturtle()
+heart.speed(0)
+
+decorazioni = turtle.Turtle()
+decorazioni.hideturtle()
+decorazioni.speed(0)
+
+firma = turtle.Turtle()
+firma.hideturtle()
+firma.speed(0)
+
+fase = "rating"
+voto = 0
+frame = 0
+tempo_inizio = time.time()
+
+
+# ==================================================
+# COLORI
+# ==================================================
+
+ROSSO_CHIARO = (255, 35, 55)
+ROSSO_SCuro = (65, 0, 8)
+BIANCO = (255, 225, 225)
+
+
+def colore(rgb, intensita):
+    intensita = max(0, min(1, intensita))
+    return tuple(int(c * intensita) for c in rgb)
+
+
+# ==================================================
+# TESTI
+# ==================================================
+
+def testo(t, x, y, frase, dimensione, color,
+          font="Arial", stile="bold"):
+
+    t.penup()
+    t.goto(x, y)
+    t.color(color)
+
+    t.write(
+        frase,
+        align="center",
+        font=(font, dimensione, stile)
+    )
+
+
+def testo_graduale(t, x, y, frase, dimensione,
+                   color, progressione,
+                   font="Arial", stile="bold"):
+
+    progressione = max(0, min(1, progressione))
+
+    # IMPORTANTE: a progressione 1 scrive TUTTA la frase
+    if progressione >= 1:
+        frase_visibile = frase
+    else:
+        lettere = int(len(frase) * progressione)
+        frase_visibile = frase[:lettere]
+
+    testo(
+        t, x, y,
+        frase_visibile,
+        dimensione,
+        color,
+        font,
+        stile
+    )
+
+
+# ==================================================
+# PULSANTI
+# ==================================================
+
+def pulsante(x, y, frase, intensita):
+
+    c = colore((180, 0, 25), intensita)
+
+    ui.penup()
+    ui.goto(x - 65, y - 23)
+    ui.pendown()
+
+    ui.color(c)
+    ui.fillcolor((35, 0, 8))
+    ui.begin_fill()
+
+    for _ in range(2):
+        ui.forward(130)
+        ui.left(90)
+        ui.forward(46)
+        ui.left(90)
+
+    ui.end_fill()
+    ui.penup()
+
+    testo(
+        ui, x, y - 7,
+        frase, 15,
+        colore(BIANCO, intensita)
+    )
+
+
+# ==================================================
+# VALUTAZIONE A STELLE
+# ==================================================
+
+def schermata_rating(intensita):
+
+    ui.clear()
+
+    testo_graduale(
+        ui, 0, 130,
+        "Quanto mi vuoi bene da 1 a 5?",
+        25,
+        colore(ROSSO_CHIARO, intensita),
+        intensita
+    )
+
+    for i in range(5):
+
+        x = -120 + i * 60
+
+        ui.penup()
+        ui.goto(x, -15)
+
+        if voto >= i + 1:
+            ui.color(colore((255, 190, 30), intensita))
+            simbolo = "★"
+        else:
+            ui.color(colore((170, 130, 50), intensita))
+            simbolo = "☆"
+
+        ui.write(
+            simbolo,
+            align="center",
+            font=("Arial", 45, "bold")
+        )
+
+    testo(
+        ui, 0, -100,
+        "Scegli le stelline...",
+        14,
+        (170, 170, 170)
+    )
+
+
+# ==================================================
+# DOMANDE CON COMPARSA E SCOMPARSA GRADUALE
+# ==================================================
+
+def schermata_domanda(frase, trascorso):
+
+    ui.clear()
+
+    # Comparsa: 1,5 secondi
+    comparsa = min(1, trascorso / 1.5)
+
+    # Scomparsa: ultimi 1,5 secondi
+    scomparsa = min(1, max(0, (8 - trascorso) / 1.5))
+
+    intensita = min(comparsa, scomparsa)
+
+    # Quando la comparsa è completa, mostra tutta la frase
+    if trascorso >= 1.5:
+        intensita = scomparsa
+
+    testo_graduale(
+        ui, 0, 100,
+        frase,
+        27,
+        colore(ROSSO_CHIARO, intensita),
+        1 if trascorso >= 1.5 else comparsa
+    )
+
+    pulsante(-100, -30, "SÌ", intensita)
+    pulsante(100, -30, "NO", intensita)
+
+
+# ==================================================
+# ECCOLA QUA
+# ==================================================
+
+def schermata_attesa(trascorso):
+
+    ui.clear()
+
+    if trascorso < 1.5:
+        intensita = trascorso / 1.5
+    elif trascorso < 4:
+        intensita = 1
+    else:
+        intensita = max(0, 1 - (trascorso - 4))
+
+    testo_graduale(
+        ui, 0, 0,
+        "Eccola qua...",
+        35,
+        colore(ROSSO_CHIARO, intensita),
+        min(1, trascorso / 1.5)
+    )
+
+
+# ==================================================
+# FORMA DEL CUORE
+# ==================================================
+
+def punti_cuore(scala, angolo=0):
+
+    punti = []
+
+    for i in range(361):
+
+        t = math.radians(i)
+
+        x = 16 * math.sin(t) ** 3
+
+        y = (
+            13 * math.cos(t)
+            - 5 * math.cos(2 * t)
+            - 2 * math.cos(3 * t)
+            - math.cos(4 * t)
+        )
+
+        x *= scala
+        y *= scala
+
+        # Rotazione prospettica sul proprio asse
+        xr = x * math.cos(angolo)
+
+        punti.append((xr, y))
+
+    return punti
+
+
+# ==================================================
+# CUORE CON PROFONDITÀ E SFUMATURE
+# ==================================================
+
+def disegna_cuore_pieno(scala, angolo=0):
+
+    heart.clear()
+
+    # Ombra
+    punti = punti_cuore(scala * 1.06, angolo)
+
+    heart.penup()
+    heart.goto(punti[0])
+    heart.pendown()
+
+    heart.color((30, 0, 5))
+    heart.fillcolor((30, 0, 5))
+    heart.begin_fill()
+
+    for p in punti:
+        heart.goto(p)
+
+    heart.end_fill()
+    heart.penup()
+
+    # Sfumature rosse
+    colori = [
+        (85, 0, 12),
+        (105, 0, 15),
+        (130, 0, 18),
+        (155, 0, 22),
+        (180, 0, 27),
+        (205, 5, 32),
+        (225, 10, 40),
+        (245, 20, 50),
+        (255, 40, 65),
+        (255, 65, 80)
+    ]
+
+    for i, tonalita in enumerate(colori):
+
+        fattore = 1 - i * 0.075
+
+        punti = punti_cuore(
+            scala * fattore,
+            angolo
+        )
+
+        heart.penup()
+        heart.goto(punti[0])
+        heart.pendown()
+
+        heart.color(tonalita)
+        heart.fillcolor(tonalita)
+        heart.begin_fill()
+
+        for p in punti:
+            heart.goto(p)
+
+        heart.end_fill()
+        heart.penup()
+
+    # Riflessi luminosi
+    if abs(math.cos(angolo)) > 0.65:
+
+        heart.goto(-45, 90)
+        heart.dot(15, (255, 130, 140))
+
+        heart.goto(-25, 105)
+        heart.dot(7, (255, 190, 190))
+
+
+# ==================================================
+# DISEGNO PROGRESSIVO DEL CUORE
+# ==================================================
+
+def disegna_contorno(progressione):
+
+    heart.clear()
+
+    punti = punti_cuore(12)
+
+    quanti = max(2, int(len(punti) * progressione))
+
+    heart.penup()
+    heart.goto(punti[0])
+    heart.pendown()
+
+    heart.pensize(3)
+    heart.pencolor(ROSSO_CHIARO)
+
+    for p in punti[:quanti]:
+        heart.goto(p)
+
+    heart.penup()
+
+
+# ==================================================
+# SCRITTE SUL CUORE
+# ==================================================
+
+def scritte_cuore(progressione):
+
+    decorazioni.clear()
+
+    testo_graduale(
+        decorazioni,
+        0, -15,
+        "Matte",
+        43,
+        (255, 220, 220),
+        progressione,
+        "Brush Script MT",
+        "italic"
+    )
+
+    testo_graduale(
+        decorazioni,
+        0, -85,
+        "TI VOGLIO BENE",
+        15,
+        (255, 100, 115),
+        progressione
+    )
+
+
+# ==================================================
+# LUCI
+# ==================================================
+
+def disegna_luci(intensita):
+
+    for i in range(30):
+
+        angolo = (
+            i * 2 * math.pi / 30
+            + frame * 0.008
+        )
+
+        x = 245 * math.cos(angolo)
+        y = 195 * math.sin(angolo)
+
+        pulsazione = (
+            0.5 + 0.5 * math.sin(frame * 0.1 + i)
+        )
+
+        luminosita = intensita * (
+            0.5 + pulsazione * 0.5
+        )
+
+        decorazioni.penup()
+        decorazioni.goto(x, y)
+
+        decorazioni.dot(
+            3 + pulsazione * 5,
+            colore(ROSSO_CHIARO, luminosita)
+        )
+
+
+# ==================================================
+# FIRMA LOTTY: SOLO ALLA FINE
+# ==================================================
+
+def mostra_firma(progressione):
+
+    firma.clear()
+
+    testo_graduale(
+        firma,
+        330, -285,
+        "Lotty",
+        32,
+        colore((230, 110, 130), progressione),
+        progressione,
+        "Brush Script MT",
+        "italic"
+    )
+
+
+# ==================================================
+# CAMBIO FASE
+# ==================================================
+
+def passa_a(nuova_fase):
+
+    global fase, tempo_inizio, frame
+
+    fase = nuova_fase
+    tempo_inizio = time.time()
+    frame = 0
+
+    ui.clear()
+    heart.clear()
+    decorazioni.clear()
+    firma.clear()
+
+
+# ==================================================
+# CLICK
+# ==================================================
+
+def click(x, y):
+
+    global voto
+
+    if fase == "rating":
+
+        if -160 < x < 160 and -70 < y < 50:
+
+            posizione = round((x + 120) / 60) + 1
+            posizione = max(1, min(5, posizione))
+
+            voto = posizione
+
+            if voto == 5:
+                passa_a("domanda1")
+            else:
+                voto = 0
+
+    elif fase in ("domanda1", "domanda2"):
+
+        if -175 < y < 30:
+
+            if fase == "domanda1":
+                passa_a("domanda2")
+            else:
+                passa_a("attesa")
+
+
+screen.onclick(click)
+
+
+# ==================================================
+# ANIMAZIONE PRINCIPALE
+# ==================================================
+
+def animazione():
+
+    global frame
+
+    trascorso = time.time() - tempo_inizio
+    frame += 1
+
+    # ----------------------------------------------
+    # RATING
+    # ----------------------------------------------
+
+    if fase == "rating":
+
+        intensita = min(1, trascorso / 1.5)
+
+        schermata_rating(intensita)
+
+    # ----------------------------------------------
+    # PRIMA DOMANDA
+    # ----------------------------------------------
+
+    elif fase == "domanda1":
+
+        schermata_domanda(
+            "Sei pronto a vedere la sorpresa?",
+            trascorso
+        )
+
+        if trascorso >= 8:
+            passa_a("domanda2")
+
+    # ----------------------------------------------
+    # SECONDA DOMANDA
+    # ----------------------------------------------
+
+    elif fase == "domanda2":
+
+        schermata_domanda(
+            "Sicuro sicuro?",
+            trascorso
+        )
+
+        if trascorso >= 8:
+            passa_a("attesa")
+
+    # ----------------------------------------------
+    # ECCOLA QUA
+    # ----------------------------------------------
+
+    elif fase == "attesa":
+
+        schermata_attesa(trascorso)
+
+        if trascorso >= 5:
+            passa_a("cuore")
+
+    # ----------------------------------------------
+    # CUORE
+    # ----------------------------------------------
+
+    elif fase == "cuore":
+
+        if trascorso < 3:
+
+            progressione = trascorso / 3
+
+            disegna_contorno(progressione)
+
+        elif trascorso < 4.5:
+
+            disegna_cuore_pieno(12)
+
+        elif trascorso < 6.5:
+
+            disegna_cuore_pieno(12)
+
+            progressione = (trascorso - 4.5) / 2
+
+            scritte_cuore(progressione)
+
+        else:
+
+            # Pulsazione
+            pulsazione = (
+                1 + 0.035 * math.sin(frame * 0.08)
+            )
+
+            # Rotazione continua
+            rotazione = frame * 0.025
+
+            disegna_cuore_pieno(
+                12 * pulsazione,
+                rotazione
+            )
+
+            scritte_cuore(1)
+
+            disegna_luci(1)
+
+            # Firma Lotty: compare solo alla fine
+            if trascorso > 9:
+
+                progressione = min(
+                    1,
+                    (trascorso - 9) / 2
+                )
+
+                mostra_firma(progressione)
+
+    screen.update()
+
+    screen.ontimer(animazione, 35)
+
+
+# ==================================================
+# AVVIO
+# ==================================================
+
+animazione()
+screen.mainloop()
