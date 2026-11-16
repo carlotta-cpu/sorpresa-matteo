@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -56,8 +57,8 @@ const BIANCO = [255, 225, 225];
 
 function scalaSchermo() {
     const s = Math.min(
-        window.innerWidth / 950,
-        window.innerHeight / 750
+        window.innerWidth / 850,
+        window.innerHeight / 680
     );
 
     canvas.style.width = `${950 * s}px`;
@@ -124,7 +125,6 @@ function testo(x, y, frase, dimensione, color,
 
     ctx.save();
 
-    // Mantiene i caratteri dritti con coordinate Turtle.
     ctx.scale(1, -1);
 
     ctx.fillStyle = css(color);
@@ -203,7 +203,7 @@ function schermata_rating(intensita) {
 
     testo_graduale(
         0, 130,
-        "Quanto mi vuoi bene da 1 a 5?",
+        "Quanto sei curiosa di scoprire cosa ti aspetta?",
         25,
         colore(ROSSO_CHIARO, intensita),
         intensita
@@ -327,7 +327,6 @@ function punti_cuore(scala, angolo = 0) {
         x *= scala;
         y *= scala;
 
-        // Rotazione prospettica sul proprio asse verticale.
         const xr = x * Math.cos(angolo);
 
         punti.push([xr, y]);
@@ -370,8 +369,6 @@ function disegnaPoligono(punti, fill, stroke = fill, lineWidth = 1) {
 
 function disegna_cuore_pieno(scala, angolo = 0) {
 
-    // Ombra
-
     const puntiOmbra = punti_cuore(
         scala * 1.06,
         angolo
@@ -382,8 +379,6 @@ function disegna_cuore_pieno(scala, angolo = 0) {
         [30, 0, 5]
     );
 
-
-    // Sfumature rosse
 
     const colori = [
         [85, 0, 12],
@@ -413,8 +408,6 @@ function disegna_cuore_pieno(scala, angolo = 0) {
         );
     }
 
-
-    // Riflessi luminosi
 
     if (Math.abs(Math.cos(angolo)) > 0.65) {
 
@@ -601,7 +594,6 @@ function click(event) {
     }
 }
 
-// Riconoscimento immediato del tocco e del click.
 canvas.addEventListener("pointerdown", event => {
     event.preventDefault();
     click(event);
@@ -628,10 +620,6 @@ function animazione(ora) {
     frame++;
 
 
-    // ----------------------------------------------
-    // RATING
-    // ----------------------------------------------
-
     if (fase === "rating") {
 
         const intensita = Math.min(1, trascorso / 1.5);
@@ -639,10 +627,6 @@ function animazione(ora) {
         schermata_rating(intensita);
     }
 
-
-    // ----------------------------------------------
-    // PRIMA DOMANDA
-    // ----------------------------------------------
 
     else if (fase === "domanda1") {
 
@@ -657,10 +641,6 @@ function animazione(ora) {
     }
 
 
-    // ----------------------------------------------
-    // SECONDA DOMANDA
-    // ----------------------------------------------
-
     else if (fase === "domanda2") {
 
         schermata_domanda(
@@ -674,10 +654,6 @@ function animazione(ora) {
     }
 
 
-    // ----------------------------------------------
-    // ECCOLA QUA
-    // ----------------------------------------------
-
     else if (fase === "attesa") {
 
         schermata_attesa(trascorso);
@@ -687,10 +663,6 @@ function animazione(ora) {
         }
     }
 
-
-    // ----------------------------------------------
-    // CUORE
-    // ----------------------------------------------
 
     else if (fase === "cuore") {
 
@@ -719,13 +691,8 @@ function animazione(ora) {
 
         else {
 
-            // Pulsazione
-
             const pulsazione =
                 1 + 0.035 * Math.sin(frame * 0.08);
-
-
-            // Rotazione verticale sul proprio asse
 
             const rotazione = frame * 0.025;
 
@@ -737,9 +704,6 @@ function animazione(ora) {
             scritte_cuore(1);
 
             disegna_luci(1);
-
-
-            // Firma Lotty: compare solo alla fine
 
             if (trascorso > 9) {
 
